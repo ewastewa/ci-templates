@@ -23,6 +23,21 @@ jobs:
       image: ${{ inputs.base_image }}
 
     steps:
+      - name: Install lint tools
+        run: |
+          apt-get update && apt-get install -y --no-install-recommends \
+            clang-format \
+            clang-tidy \
+            python3-pip \
+            libxml2-utils
+          . /opt/ros/${{ inputs.ros_distro }}/setup.sh
+          pip install --break-system-packages ruff
+          apt-get install -y --no-install-recommends \
+            ros-${{ inputs.ros_distro }}-ament-cpplint \
+            ros-${{ inputs.ros_distro }}-ament-xmllint \
+            ros-${{ inputs.ros_distro }}-ament-lint
+        shell: bash
+
       - name: Checkout repository
         uses: actions/checkout@v4
 

@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 ARG ROS_DISTRO=jazzy
-ARG BASE_IMAGE=ghcr.io/launchpad-build/launchpad-ros2-jazzy:main
+ARG BASE_IMAGE=osrf/ros:jazzy-desktop
 
 # ---------------------------------------------------------------------------
 # Stage: deps
@@ -11,6 +11,8 @@ FROM ${BASE_IMAGE} AS deps
 ARG ROS_DISTRO
 ARG PACKAGE_PATH=.
 
+ENV DEBIAN_FRONTEND=noninteractive
+
 WORKDIR /ws
 
 COPY ${PACKAGE_PATH} src/
@@ -18,6 +20,8 @@ COPY ${PACKAGE_PATH} src/
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && \
+    apt-get install -y --no-install-recommends python3-rosdep && \
+    rosdep init 2>/dev/null || true && \
     rosdep update --rosdistro ${ROS_DISTRO} && \
     rosdep install --from-paths src --ignore-src -r -y
 
@@ -26,8 +30,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # ---------------------------------------------------------------------------
 FROM deps AS build
 
-RUN --mount=type=cache,target=/ws/build \
-    . /opt/ros/${ROS_DISTRO}/setup.sh && \
+ARG ROS_DISTRO
+
+RUN . /opt/ros/${ROS_DISTRO}/setup.sh && \
     colcon build \
       --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo \
       --event-handlers console_cohesion+
@@ -36,6 +41,8 @@ RUN --mount=type=cache,target=/ws/build \
 # Stage: test
 # ---------------------------------------------------------------------------
 FROM build AS test
+
+ARG ROS_DISTRO
 
 RUN . /opt/ros/${ROS_DISTRO}/setup.sh && \
     . /ws/install/setup.sh && \
@@ -50,11 +57,15 @@ FROM ${BASE_IMAGE} AS runtime
 
 ARG ROS_DISTRO
 
+ENV DEBIAN_FRONTEND=noninteractive
+
 COPY --from=build /ws/install /ws/install
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && \
+    apt-get install -y --no-install-recommends python3-rosdep xvfb && \
+    rosdep init 2>/dev/null || true && \
     rosdep update --rosdistro ${ROS_DISTRO} && \
     rosdep install --from-paths /ws/install --ignore-src -r -y
 
