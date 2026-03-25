@@ -7,7 +7,7 @@ AlignAfterOpenBracket: AlwaysBreak
 BraceWrapping:
   AfterClass: true
   AfterFunction: true
-  AfterNamespaceDeclaration: true
+  AfterNamespace: true
   AfterStruct: true
   AfterEnum: true
   BeforeCatch: true
