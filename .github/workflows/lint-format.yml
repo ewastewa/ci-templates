@@ -1,0 +1,93 @@
+name: Lint & Format
+
+on:
+  workflow_call:
+    inputs:
+      ros_distro:
+        description: ROS 2 distribution name
+        type: string
+        default: jazzy
+      base_image:
+        description: Base Docker image with ROS 2 installed
+        type: string
+        default: ghcr.io/launchpad-build/launchpad-ros2-jazzy:main
+      package_paths:
+        description: Space-separated list of package paths to lint
+        type: string
+        default: .
+
+jobs:
+  lint-format:
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ inputs.base_image }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Checkout ci-templates for shared configs
+        uses: actions/checkout@v4
+        with:
+          repository: launchpad-build/ci-templates
+          path: .ci-templates
+          sparse-checkout: config
+
+      - name: Find C++ source files
+        id: find-cpp
+        run: |
+          CPP_FILES=$(find ${{ inputs.package_paths }} \
+            -name '*.cpp' -o -name '*.hpp' \
+            | grep -v '.ci-templates' \
+            | tr '\n' ' ')
+          echo "files=${CPP_FILES}" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+      - name: clang-format check
+        if: steps.find-cpp.outputs.files != ''
+        run: |
+          clang-format \
+            --style=file:.ci-templates/config/.clang-format \
+            --dry-run --Werror \
+            ${{ steps.find-cpp.outputs.files }}
+        shell: bash
+
+      - name: clang-tidy
+        if: steps.find-cpp.outputs.files != ''
+        run: |
+          . /opt/ros/${{ inputs.ros_distro }}/setup.sh
+          clang-tidy \
+            --config-file=.ci-templates/config/.clang-tidy \
+            ${{ steps.find-cpp.outputs.files }} \
+            -- -std=c++20
+        shell: bash
+
+      - name: ament_cpplint
+        run: |
+          . /opt/ros/${{ inputs.ros_distro }}/setup.sh
+          ament_cpplint ${{ inputs.package_paths }}
+        shell: bash
+
+      - name: ament_xmllint
+        run: |
+          . /opt/ros/${{ inputs.ros_distro }}/setup.sh
+          ament_xmllint $(find ${{ inputs.package_paths }} -name '*.xml' | grep -v '.ci-templates')
+        shell: bash
+
+      - name: Find Python files
+        id: find-py
+        run: |
+          PY_FILES=$(find ${{ inputs.package_paths }} \
+            -name '*.py' \
+            | grep -v '.ci-templates' \
+            | tr '\n' ' ')
+          echo "files=${PY_FILES}" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+      - name: ruff
+        if: steps.find-py.outputs.files != ''
+        run: |
+          ruff check \
+            --config .ci-templates/config/.ruff.toml \
+            ${{ steps.find-py.outputs.files }}
+        shell: bash
