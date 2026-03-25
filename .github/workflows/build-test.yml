@@ -31,7 +31,7 @@ jobs:
       - name: Checkout ci-templates for Dockerfile
         uses: actions/checkout@v4
         with:
-          repository: launchpad-build/ci-templates
+          repository: ewastewa/ci-templates
           path: .ci-templates
           sparse-checkout: docker
 

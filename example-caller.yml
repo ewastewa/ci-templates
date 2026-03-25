@@ -37,7 +37,7 @@ jobs:
   # Runs first as a fast gate before building
   # -----------------------------------------------------------------------
   lint-format:
-    uses: launchpad-build/ci-templates/.github/workflows/lint-format.yml@main
+    uses: ewastewa/ci-templates/.github/workflows/lint-format.yml@main
     with:
       # ROS 2 distribution name
       ros_distro: jazzy
@@ -52,7 +52,7 @@ jobs:
   # -----------------------------------------------------------------------
   build-test:
     needs: lint-format
-    uses: launchpad-build/ci-templates/.github/workflows/build-test.yml@main
+    uses: ewastewa/ci-templates/.github/workflows/build-test.yml@main
     with:
       ros_distro: jazzy
       base_image: ghcr.io/launchpad-build/launchpad-ros2-jazzy:main
@@ -67,7 +67,7 @@ jobs:
   # -----------------------------------------------------------------------
   integration-test:
     needs: build-test
-    uses: launchpad-build/ci-templates/.github/workflows/integration-test.yml@main
+    uses: ewastewa/ci-templates/.github/workflows/integration-test.yml@main
     with:
       ros_distro: jazzy
       base_image: ghcr.io/launchpad-build/launchpad-ros2-jazzy:main
@@ -82,7 +82,7 @@ jobs:
   # -----------------------------------------------------------------------
   sim-smoke-test:
     needs: build-test
-    uses: launchpad-build/ci-templates/.github/workflows/sim-smoke-test.yml@main
+    uses: ewastewa/ci-templates/.github/workflows/sim-smoke-test.yml@main
     with:
       ros_distro: jazzy
       base_image: ghcr.io/launchpad-build/launchpad-ros2-jazzy:main

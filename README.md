@@ -53,28 +53,28 @@ on:
 
 jobs:
   lint:
-    uses: launchpad-build/ci-templates/.github/workflows/lint-format.yml@main
+    uses: ewastewa/ci-templates/.github/workflows/lint-format.yml@main
     with:
       ros_distro: jazzy
       base_image: ghcr.io/launchpad-build/launchpad-ros2-jazzy:main
 
   build-test:
     needs: lint
-    uses: launchpad-build/ci-templates/.github/workflows/build-test.yml@main
+    uses: ewastewa/ci-templates/.github/workflows/build-test.yml@main
     with:
       ros_distro: jazzy
       base_image: ghcr.io/launchpad-build/launchpad-ros2-jazzy:main
 
   integration-test:
     needs: build-test
-    uses: launchpad-build/ci-templates/.github/workflows/integration-test.yml@main
+    uses: ewastewa/ci-templates/.github/workflows/integration-test.yml@main
     with:
       ros_distro: jazzy
       base_image: ghcr.io/launchpad-build/launchpad-ros2-jazzy:main
 
   sim-smoke-test:
     needs: build-test
-    uses: launchpad-build/ci-templates/.github/workflows/sim-smoke-test.yml@main
+    uses: ewastewa/ci-templates/.github/workflows/sim-smoke-test.yml@main
     with:
       ros_distro: jazzy
       base_image: ghcr.io/launchpad-build/launchpad-ros2-jazzy:main
