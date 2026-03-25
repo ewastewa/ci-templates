@@ -20,6 +20,24 @@ ci-templates/
   config/              # Shared linter and formatter configs
 ```
 
+## Shared Configs
+
+The `config/` directory contains shared linter and formatter configurations.
+
+- `.clang-format` - C++ formatting rules based on ROS 2 conventions
+- `.clang-tidy` - C++ static analysis checks for ROS 2 code
+- `.ruff.toml` - Python linting rules for launch files and nodes
+
+To use these in your repo, copy the files to your project root or symlink them:
+
+```bash
+cp ci-templates/config/.clang-format .clang-format
+cp ci-templates/config/.clang-tidy .clang-tidy
+cp ci-templates/config/.ruff.toml ruff.toml
+```
+
+The lint-format workflow fetches these configs automatically from this repo at runtime.
+
 ## Usage
 
 Add a caller workflow to your repository at `.github/workflows/ci.yml` that references these reusable workflows.
