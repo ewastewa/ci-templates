@@ -1,0 +1,87 @@
+name: Integration Test
+
+on:
+  workflow_call:
+    inputs:
+      ros_distro:
+        description: ROS 2 distribution name
+        type: string
+        default: jazzy
+      base_image:
+        description: Base Docker image with ROS 2 installed
+        type: string
+        default: ghcr.io/launchpad-build/launchpad-ros2-jazzy:main
+      test_directory:
+        description: Directory containing launch_testing test files
+        type: string
+        default: test/integration/
+      test_timeout:
+        description: Timeout for integration tests in seconds
+        type: string
+        default: '120'
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Checkout ci-templates for Dockerfile
+        uses: actions/checkout@v4
+        with:
+          repository: launchpad-build/ci-templates
+          path: .ci-templates
+          sparse-checkout: docker
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .ci-templates/docker/Dockerfile.ci
+          target: build
+          build-args: |
+            ROS_DISTRO=${{ inputs.ros_distro }}
+            BASE_IMAGE=${{ inputs.base_image }}
+            PACKAGE_PATH=.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          load: true
+          tags: ci-build:integration
+
+      - name: Run integration tests
+        timeout-minutes: ${{ fromJSON(format('{0}', (fromJSON(inputs.test_timeout) / 60) + 1)) }}
+        run: |
+          docker run --rm \
+            --name integration-test \
+            -v "${{ github.workspace }}/${{ inputs.test_directory }}:/ws/test_integration:ro" \
+            ci-build:integration \
+            bash -c "
+              . /opt/ros/${{ inputs.ros_distro }}/setup.sh && \
+              . /ws/install/setup.sh && \
+              launch_test /ws/test_integration/*.test.py && \
+              colcon test-result --verbose
+            "
+        shell: bash
+
+      - name: Extract test results
+        if: always()
+        run: |
+          CONTAINER_ID=$(docker ps -aq --filter name=integration-test 2>/dev/null || true)
+          if [ -n "${CONTAINER_ID}" ]; then
+            docker cp "${CONTAINER_ID}:/ws/build/test_results" ./integration_results 2>/dev/null || true
+            docker rm "${CONTAINER_ID}" 2>/dev/null || true
+          fi
+        shell: bash
+
+      - name: Upload integration test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: integration_results/**/*.xml
+          if-no-files-found: warn
