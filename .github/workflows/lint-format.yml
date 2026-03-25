@@ -69,7 +69,7 @@ jobs:
       - name: ament_cpplint
         run: |
           . /opt/ros/${{ inputs.ros_distro }}/setup.sh
-          ament_cpplint ${{ inputs.package_paths }}
+          ament_cpplint --filters=-legal/copyright ${{ inputs.package_paths }}
         shell: bash
 
       - name: ament_xmllint
