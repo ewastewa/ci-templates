@@ -54,7 +54,7 @@ jobs:
           tags: ci-build:test
 
       - name: Run unit tests
-        timeout-minutes: ${{ fromJSON(format('{0}', (fromJSON(inputs.test_timeout) / 60) + 1)) }}
+        timeout-minutes: 30
         run: |
           docker create --name test-container ci-build:test
           docker cp test-container:/ws/build/test_results ./test_results 2>/dev/null || true

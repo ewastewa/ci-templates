@@ -54,7 +54,7 @@ jobs:
           tags: ci-build:integration
 
       - name: Run integration tests
-        timeout-minutes: ${{ fromJSON(format('{0}', (fromJSON(inputs.test_timeout) / 60) + 1)) }}
+        timeout-minutes: 30
         run: |
           docker run --rm \
             --name integration-test \
