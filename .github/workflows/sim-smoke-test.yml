@@ -103,7 +103,7 @@ jobs:
       - name: Run simulation smoke test
         timeout-minutes: 30
         run: |
-          docker run --rm \
+          docker run \
             --name sim-smoke-test \
             -e ROS_DISTRO=${{ inputs.ros_distro }} \
             -e DISPLAY=:99 \
@@ -122,11 +122,8 @@ jobs:
       - name: Collect logs on failure
         if: failure()
         run: |
-          CONTAINER_ID=$(docker ps -aq --filter name=sim-smoke-test 2>/dev/null || true)
-          if [ -n "${CONTAINER_ID}" ]; then
-            docker logs "${CONTAINER_ID}" > sim-smoke-test.log 2>&1 || true
-            docker rm "${CONTAINER_ID}" 2>/dev/null || true
-          fi
+          docker logs sim-smoke-test > sim-smoke-test.log 2>&1 || true
+          docker rm sim-smoke-test 2>/dev/null || true
         shell: bash
 
       - name: Upload logs on failure

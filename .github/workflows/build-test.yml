@@ -53,14 +53,14 @@ jobs:
           load: true
           tags: ci-build:test
 
-      - name: Run unit tests
-        timeout-minutes: 30
+      - name: Extract test results
+        if: always()
         run: |
           docker create --name test-container ci-build:test
-          docker cp test-container:/ws/build/test_results ./test_results 2>/dev/null || true
-          EXIT_CODE=$(docker inspect test-container --format='{{.State.ExitCode}}')
+          mkdir -p test_results
+          docker cp test-container:/ws/build/. /tmp/build_output 2>/dev/null || true
+          find /tmp/build_output -name '*.xml' -path '*/test_results/*' -exec cp {} test_results/ \; 2>/dev/null || true
           docker rm test-container
-          exit ${EXIT_CODE}
         shell: bash
 
       - name: Upload test results
@@ -68,5 +68,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: unit-test-results
-          path: test_results/**/*.xml
+          path: test_results/*.xml
           if-no-files-found: warn
