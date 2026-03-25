@@ -1,0 +1,94 @@
+# Example CI caller workflow
+#
+# Copy this file to your repository at .github/workflows/ci.yml
+# and adjust the input values to match your project.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+
+  workflow_dispatch:
+
+  schedule:
+    # Nightly run at 02:00 UTC on weekdays
+    - cron: '0 2 * * 1-5'
+
+concurrency:
+  # Cancel in-progress runs for the same PR, but not for pushes to main
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  # -----------------------------------------------------------------------
+  # Lint and format check
+  # Runs first as a fast gate before building
+  # -----------------------------------------------------------------------
+  lint-format:
+    uses: launchpad-build/ci-templates/.github/workflows/lint-format.yml@main
+    with:
+      # ROS 2 distribution name
+      ros_distro: jazzy
+      # Base image with ROS 2 and build tools pre-installed
+      base_image: ghcr.io/launchpad-build/launchpad-ros2-jazzy:main
+      # Space-separated list of package paths to lint (relative to repo root)
+      package_paths: .
+
+  # -----------------------------------------------------------------------
+  # Build and unit test
+  # Runs after lint passes to avoid wasting build time on style failures
+  # -----------------------------------------------------------------------
+  build-test:
+    needs: lint-format
+    uses: launchpad-build/ci-templates/.github/workflows/build-test.yml@main
+    with:
+      ros_distro: jazzy
+      base_image: ghcr.io/launchpad-build/launchpad-ros2-jazzy:main
+      # Extra colcon build arguments (e.g. --packages-select my_pkg)
+      colcon_build_args: ''
+      # Timeout for the test step in seconds
+      test_timeout: '300'
+
+  # -----------------------------------------------------------------------
+  # Integration tests
+  # Runs after a successful build to verify node interactions
+  # -----------------------------------------------------------------------
+  integration-test:
+    needs: build-test
+    uses: launchpad-build/ci-templates/.github/workflows/integration-test.yml@main
+    with:
+      ros_distro: jazzy
+      base_image: ghcr.io/launchpad-build/launchpad-ros2-jazzy:main
+      # Directory containing launch_testing .test.py files
+      test_directory: test/integration/
+      # Timeout for integration tests in seconds
+      test_timeout: '120'
+
+  # -----------------------------------------------------------------------
+  # Simulation smoke test
+  # Runs after build to verify nodes launch and topics publish
+  # -----------------------------------------------------------------------
+  sim-smoke-test:
+    needs: build-test
+    uses: launchpad-build/ci-templates/.github/workflows/sim-smoke-test.yml@main
+    with:
+      ros_distro: jazzy
+      base_image: ghcr.io/launchpad-build/launchpad-ros2-jazzy:main
+      # Launch file to start (package/launch/file.launch.py format)
+      launch_file: my_package/launch/sim.launch.py
+      # Comma-separated list of topics that must publish at least one message
+      expected_topics: "/joint_states,/tf"
+      # Maximum time in seconds to wait for all topics
+      timeout: '180'
