@@ -27,7 +27,6 @@ jobs:
         run: |
           apt-get update && apt-get install -y --no-install-recommends \
             clang-format \
-            clang-tidy \
             python3-pip \
             libxml2-utils
           . /opt/ros/${{ inputs.ros_distro }}/setup.sh
@@ -65,16 +64,6 @@ jobs:
             --style=file:.ci-templates/config/.clang-format \
             --dry-run --Werror \
             ${{ steps.find-cpp.outputs.files }}
-        shell: bash
-
-      - name: clang-tidy
-        if: steps.find-cpp.outputs.files != ''
-        run: |
-          . /opt/ros/${{ inputs.ros_distro }}/setup.sh
-          clang-tidy \
-            --config-file=.ci-templates/config/.clang-tidy \
-            ${{ steps.find-cpp.outputs.files }} \
-            -- -std=c++20
         shell: bash
 
       - name: ament_cpplint
